@@ -179,7 +179,7 @@ class MainWindow(QWidget):
     def __init__(self, genres: list[Genre], save_callback: Callable[[list[Genre]], None]) -> None:
         super().__init__()
         self.setWindowTitle("MissionManager")
-        self.resize(900, 620)
+        self.resize(780, 540)
         self.genres = genres
         self.save_callback = save_callback
 
@@ -194,7 +194,8 @@ class MainWindow(QWidget):
         self._reload_genre_combo()
         self.genre_combo.currentIndexChanged.connect(self._render_missions)
 
-        add_genre_btn = QPushButton("ジャンル追加")
+        add_genre_btn = QToolButton()
+        add_genre_btn.setText("追加")
         add_genre_btn.clicked.connect(self._add_genre)
 
         delete_genre_btn = QToolButton()
@@ -202,7 +203,6 @@ class MainWindow(QWidget):
         delete_genre_btn.setToolTip("ジャンル削除")
         delete_genre_btn.clicked.connect(self._delete_genre)
 
-        top.addWidget(QLabel("ジャンル:"))
         top.addWidget(self.genre_combo, 1)
         top.addWidget(add_genre_btn)
         top.addWidget(delete_genre_btn)
