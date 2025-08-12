@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QInputDialog,
     QMessageBox,
+    QToolButton,
 )
 
 from models import Genre, Mission, Task
@@ -25,9 +26,11 @@ class TaskItem(QWidget):
 
     toggled = Signal()    # チェック変更通知
 
-    def __init__(self, task: Task, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, task: Task, mission: Mission, save_callback: Callable, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.task = task
+        self.mission = mission
+        self.save_callback = save_callback
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)    # 余白設定
@@ -35,9 +38,12 @@ class TaskItem(QWidget):
         self.check = QCheckBox(task.name)
         self.check.setChecked(task.done)
         self.check.toggled.connect(self._on_toggled)
-
         layout.addWidget(self.check, 1)
-
+        
+        delete_btn = QToolButton()
+        delete_btn.setText("削除")
+        delete_btn.clicked.connect(self._delete_task)
+        layout.addWidget(delete_btn)
 
     def _on_toggled(self, checked: bool) -> None:
         # チェックボックスの状態をTaskモデルに反映し、親に通知
@@ -51,14 +57,23 @@ class TaskItem(QWidget):
         self.toggled.emit()
 
 
+    def _delete_task(self) -> None:
+        if QMessageBox.question(self, "確認", f"タスク「{self.task.name}」を削除しますか?") == QMessageBox.Yes:
+               self.mission.tasks.remove(self.task)
+               self.save_callback()
+               self.setParent(None)
+
+
 class MissionCard(QFrame):
     # ミッションカードUIを表示
 
     changed = Signal()    # タスクの変更、追加で進歩再計算を通知
 
-    def __init__(self, mission: Mission, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, mission: Mission, genre: Genre, save_callback, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.mission = mission
+        self.genre = genre
+        self.save_callback = save_callback
         self.setFrameShape(QFrame.StyledPanel)
         self.setObjectName("missionCard")
 
@@ -73,14 +88,20 @@ class MissionCard(QFrame):
         self.progress.setRange(0, 100)
         self._apply_progress()
 
-        self.toggle_btn = QPushButton("タスクを表示/非表示")
+        self.toggle_btn = QPushButton("タスクの表示")
         self.toggle_btn.setCheckable(True)
-        self.toggle_btn.setChecked(False)    # 初期はタスク未展開
+        self.toggle_btn.setChecked(False)    
         self.toggle_btn.toggled.connect(self._toggle_body)
+
+        # 削除ボタン
+        delete_btn = QToolButton()
+        delete_btn.setText("削除")
+        delete_btn.clicked.connect(self._delete_mission)
 
         header.addWidget(self.title, 1)
         header.addWidget(self.progress, 2)
         header.addWidget(self.toggle_btn)
+        header.addWidget(delete_btn)
         root.addLayout(header)
 
         # ボディ(タスク)
@@ -92,7 +113,7 @@ class MissionCard(QFrame):
         # 既存タスクの描画
         self.task_items: list[TaskItem] = []
         for t in self.mission.tasks:
-            item = TaskItem(t)
+            item = TaskItem(t, self.mission, self.save_callback)
             item.toggled.connect(self._on_task_changed)
             self.task_items.append(item)
             body_layout.addWidget(item)
@@ -106,6 +127,16 @@ class MissionCard(QFrame):
         body_layout.addLayout(add_row)
 
         root.addWidget(self.body)
+
+        self.body.setVisible(False)    # 初期状態でタスクを折りたたむ
+
+
+    # ミッション削除
+    def _delete_mission(self) -> None:    
+        if QMessageBox.question(self, "確認", f"ミッション「{self.mission.name}」を削除しますか？") == QMessageBox.Yes:
+            self.genre.missions.remove(self.mission)
+            self.save_callback()
+            self.setParent(None)
 
 
     # --- 内部処理 ---
@@ -134,7 +165,7 @@ class MissionCard(QFrame):
         self.mission.tasks.append(task)
 
         # UI行を追加
-        item = TaskItem(task)
+        item = TaskItem(task, self.mission, self.save_callback)
         item.toggled.connect(self._on_task_changed)
         self.task_items.append(item)
         self.body.layout().insertWidget(len(self.task_items) - 1, item)
@@ -166,9 +197,15 @@ class MainWindow(QWidget):
         add_genre_btn = QPushButton("ジャンル追加")
         add_genre_btn.clicked.connect(self._add_genre)
 
+        delete_genre_btn = QToolButton()
+        delete_genre_btn.setText("削除")
+        delete_genre_btn.setToolTip("ジャンル削除")
+        delete_genre_btn.clicked.connect(self._delete_genre)
+
         top.addWidget(QLabel("ジャンル:"))
         top.addWidget(self.genre_combo, 1)
         top.addWidget(add_genre_btn)
+        top.addWidget(delete_genre_btn)
 
         root.addLayout(top)
 
@@ -226,6 +263,18 @@ class MainWindow(QWidget):
         self._save()
 
 
+    # ジャンル削除
+    def _delete_genre(self) -> None:
+        genre = self._current_genre()
+        if not genre:
+            return
+        if QMessageBox.question(self, "確認", f"ジャンル「{genre.name}」を削除しますか？") == QMessageBox.Yes:
+            self.genres.remove(genre)
+            self._reload_genre_combo()
+            self._save()
+            self._render_missions()
+
+
     # ミッション描写・操作
     def _clear_missions_ui(self) -> None:
         layout = self.mission_layout
@@ -243,7 +292,7 @@ class MainWindow(QWidget):
         if genre is None:
             return
         for m in genre.missions:
-            card = MissionCard(m)
+            card = MissionCard(m, genre, self._save)
             card.changed.connect(self._save)
             self.mission_layout.insertWidget(self.mission_layout.count() - 1, card)
 
