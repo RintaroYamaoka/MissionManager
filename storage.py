@@ -39,10 +39,24 @@ class JsonStorage:
             missions: List[Mission] = []
             
             for m in g.get("missions", []):
-                tasks = [Task(**t) for t in m.get("tasks", [])]
-                missions.append(Mission(name=m["name"], tasks=tasks))
+                tasks = [
+                    Task(
+                        name = t.get("name", ""),
+                        done = t.get("done", False),
+                        completed_at = t.get("completed_at"),
+                    ) 
+                    for t in m.get("tasks", [])
+                ]
+                missions.append(
+                    Mission(
+                        name=m.get("name", ""), 
+                        tasks=tasks,
+                        due_date = m.get("due_date"),
+                        completed_at = m.get("completed_at"),
+                    )
+                )
 
-            genres.append(Genre(name=g["name"], missions=missions))
+            genres.append(Genre(name=g.get("name", ""), missions=missions))
         return genres
 
 
@@ -54,7 +68,16 @@ class JsonStorage:
                     "missions": [
                         {
                             "name": m.name,
-                            "tasks": [{"name": t.name, "done": t.done} for t in m.tasks],
+                            "due_date": m.due_date,
+                            "completed_at": m.completed_at,
+                            "tasks": [
+                                {
+                                    "name": t.name,
+                                    "done": t.done,
+                                    "completed_at": t.completed_at,
+                                }
+                                for t in m.tasks
+                            ],
                         }
                         for m in g.missions   
                     ],
