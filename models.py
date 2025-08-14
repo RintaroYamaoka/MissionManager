@@ -4,7 +4,7 @@ from typing import TypedDict, Optional, List
 
 class TaskDict(TypedDict, total=False):
     name: str
-    done: bool
+    done: bool                   # 完了状態
     completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
 
 
@@ -33,6 +33,7 @@ def new_genre(name: str) -> GenreDict:
 
 
 def mission_progress(m: MissionDict) -> float:
+    # ミッション辞書から tasks キーを取得
     tasks = m.get("tasks", [])
     if not tasks:
         return 0.0

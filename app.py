@@ -9,20 +9,23 @@ def now_str() -> str:
 
 
 class AppService:
-    """
-    UIに依存しないビジネスロジック層。
-    - 全データは辞書(list[GenreDict])で管理
-    - 変更時に必ず _save() を呼んで永続化
-    """
+    # UIに依存しないビジネスロジック層
+    # 全データは List[GenreDict] データオブジェクトで管理
+    # 変更時に必ず _save() を呼んで永続化
+    
     def __init__(self, storage) -> None:
-        self._storage = storage
-        self.genres: List[GenreDict] = self._storage.load_genres()
+        # DIで受け取ったストレージインスタンスからデータオブジェクトを読み込む
+        self._storage = storage   
+        self.genres: List[GenreDict] = self._storage.load_genres()    # データオブジェクト
 
-    # ---------- persist ----------
+
     def _save(self) -> None:
+        # ストレージインスタンスに現在のデータオブジェクトを保存
         self._storage.save_genres(self.genres)
 
-    # ---------- genre ops ----------
+
+    # ジャンルの処理
+    # データオブジェクトを操作して保存
     def list_genres(self) -> List[GenreDict]:
         return self.genres
 
@@ -50,7 +53,8 @@ class AppService:
         self.genres[index+1], self.genres[index] = self.genres[index], self.genres[index+1]
         self._save()
 
-    # ---------- mission ops ----------
+
+    # ミッションの処理
     def add_mission(self, g: GenreDict, name: str) -> None:
         g.setdefault("missions", []).append(new_mission(name))
         self._save()
@@ -86,7 +90,8 @@ class AppService:
         missions[idx+1], missions[idx] = missions[idx], missions[idx+1]
         self._save()
 
-    # ---------- task ops ----------
+
+    # タスクの処理
     def add_task(self, m: MissionDict, name: str) -> None:
         m.setdefault("tasks", []).append(new_task(name))
         self._save()
