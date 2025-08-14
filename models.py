@@ -1,34 +1,40 @@
-# データモデルの定義
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import TypedDict, Optional, List
 
-@dataclass
-class Task:
+
+class TaskDict(TypedDict, total=False):
     name: str
-    done: bool = False
-    completed_at: Optional[str] = None    # 完了日時（YYYY-MM-DD HH:MM）
+    done: bool
+    completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
 
 
-@dataclass
-class Mission:
+class MissionDict(TypedDict, total=False):
     name: str
-    tasks: List[Task] = field(default_factory=list)
-    due_date: Optional[str] = None        # 期日
-    completed_at: Optional[str] = None    # 完了日時
-    
-    
-    # 完了しているタスクごとに1を出力して合計する
-    @property
-    def progress(self) -> float:
-        if not self.tasks:
-            return 0.0
-        
-        completed = sum(1 for t in self.tasks if t.done)
-        return completed / len(self.tasks)
-    
+    tasks: List[TaskDict]
+    due_date: Optional[str]      # "YYYY-MM-DD" or None
+    completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
 
-@dataclass
-class Genre:
+
+class GenreDict(TypedDict, total=False):
     name: str
-    missions: List[Mission] = field(default_factory=list)
+    missions: List[MissionDict]
+
+
+def new_task(name: str) -> TaskDict:
+    return {"name": name, "done": False, "completed_at": None}
+
+
+def new_mission(name: str) -> MissionDict:
+    return {"name": name, "tasks": [], "due_date": None, "completed_at": None}
+
+
+def new_genre(name: str) -> GenreDict:
+    return {"name": name, "missions": []}
+
+
+def mission_progress(m: MissionDict) -> float:
+    tasks = m.get("tasks", [])
+    if not tasks:
+        return 0.0
+    done = sum(1 for t in tasks if t.get("done", False))
+    return done / len(tasks)

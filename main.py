@@ -1,22 +1,17 @@
-# メイン処理
+# メイン処理（依存度を下げた理想設計版）
 import sys
 from PySide6.QtWidgets import QApplication
-
 from storage import JsonStorage
+from app import AppService
 from views import MainWindow
 
 
 def main() -> None:
     app = QApplication(sys.argv)
     storage = JsonStorage()
-    genres = storage.load_genres()
+    service = AppService(storage)
 
-
-    def save_callback(updated):
-        storage.save_genres(updated)
-
-
-    window = MainWindow(genres, save_callback)
+    window = MainWindow(service)
     window.show()
 
     sys.exit(app.exec())
