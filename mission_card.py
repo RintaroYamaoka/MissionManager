@@ -178,7 +178,7 @@ class MissionCard(QFrame):
         from PySide6.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self, "ミッション名の変更", "ミッション：", text=self.mission.get("name", ""))
         if ok and new_name.strip():
-            self.service.rename_mission(self.genre, self.mission, new_name.strip())
+            self.service.rename_mission(self.mission, new_name.strip())
             self.title.setText(self.mission.get("name", ""))
             self.changed.emit()
 
@@ -192,7 +192,7 @@ class MissionCard(QFrame):
         )
         if not ok:
             return
-        self.service.set_mission_due(self.genre, self.mission, text.strip() or None)
+        self.service.set_mission_due(self.mission, text.strip() or None)
         self._refresh_meta_labels()
         self.changed.emit()
 
@@ -201,3 +201,4 @@ class MissionCard(QFrame):
             self.service.delete_mission(self.genre, self.mission)
             self.setParent(None)
             self.changed.emit()
+            

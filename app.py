@@ -62,11 +62,11 @@ class AppService:
     def find_mission_index(self, g: GenreDict, m: MissionDict) -> int:
         return g.get("missions", []).index(m)
 
-    def rename_mission(self, g: GenreDict, m: MissionDict, new_name: str) -> None:
+    def rename_mission(self, m: MissionDict, new_name: str) -> None:
         m["name"] = new_name
         self._save()
 
-    def set_mission_due(self, g: GenreDict, m: MissionDict, due_text: Optional[str]) -> None:
+    def set_mission_due(self, m: MissionDict, due_text: Optional[str]) -> None:
         m["due_date"] = due_text or None
         self._save()
 
@@ -96,7 +96,7 @@ class AppService:
         m.setdefault("tasks", []).append(new_task(name))
         self._save()
 
-    def rename_task(self, m: MissionDict, t: TaskDict, new_name: str) -> None:
+    def rename_task(self, t: TaskDict, new_name: str) -> None:
         t["name"] = new_name
         self._save()
 

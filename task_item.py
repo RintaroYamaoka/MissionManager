@@ -71,7 +71,7 @@ class TaskItem(QWidget):
     def _rename_task(self) -> None:
         new_name, ok = QInputDialog.getText(self, "タスク名の変更", "タスク:", text=self.task.get("name", ""))
         if ok and new_name.strip():
-            self.service.rename_task(self.mission, self.task, new_name.strip())
+            self.service.rename_task(self.task, new_name.strip())
             self.check.setText(self.task.get("name", ""))
 
     def _delete_task(self) -> None:
