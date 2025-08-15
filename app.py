@@ -14,13 +14,13 @@ class AppService:
     # 変更時に必ず _save() を呼んで永続化
     
     def __init__(self, storage) -> None:
-        # DIで受け取ったストレージインスタンスからデータオブジェクトを読み込む
+        # コンストラクタインジェクション
         self._storage = storage   
-        self.genres: List[GenreDict] = self._storage.load_genres()    # データオブジェクト
+        self.genres: List[GenreDict] = self._storage.load_genres()    # データオブジェクト読み込み
 
 
     def _save(self) -> None:
-        # ストレージインスタンスに現在のデータオブジェクトを保存
+        # DIされた_storage.save_genres 経由で現在のデータオブジェクトを保存
         self._storage.save_genres(self.genres)
 
 

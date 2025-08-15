@@ -1,13 +1,15 @@
 from __future__ import annotations
 from typing import TypedDict, Optional, List
 
-
+# 辞書型の」ための型ヒント専用クラス
+# 1タスクのデータ
 class TaskDict(TypedDict, total=False):
     name: str
     done: bool                   # 完了状態
     completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
 
 
+# 1ミッションのデータ
 class MissionDict(TypedDict, total=False):
     name: str
     tasks: List[TaskDict]
@@ -15,6 +17,7 @@ class MissionDict(TypedDict, total=False):
     completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
 
 
+# 1ジャンルのデータ
 class GenreDict(TypedDict, total=False):
     name: str
     missions: List[MissionDict]
