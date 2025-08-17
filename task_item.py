@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QLabel, QMenu, QI
 from models import TaskDict, MissionDict
 from app import AppService
 
-
 # 1タスクのUI
 class TaskItem(QWidget):
     toggled = Signal()
@@ -17,7 +16,7 @@ class TaskItem(QWidget):
         self.mission = mission
         self.task = task
 
-        # 1タスクのトップウィジェット
+        # タスクUIのレイアウト設定
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 

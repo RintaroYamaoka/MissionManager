@@ -9,41 +9,43 @@ from models import GenreDict, MissionDict, TaskDict, mission_progress
 from app import AppService
 from task_item import TaskItem
 
-
+# 1ミッションのUI
 class MissionCard(QFrame):
     changed = Signal()  # タスクの変更、追加、期限変更で通知
 
-    def __init__(
-        self,
-        service: AppService,
-        genre: GenreDict,
-        mission: MissionDict,
-        parent: Optional[QWidget] = None
-    ) -> None:
+    def __init__(self, service: AppService, genre: GenreDict, mission: MissionDict, parent: Optional[QWidget] = None) -> None:
+        # コンストラクタインジェクション
         super().__init__(parent)
         self.service = service
         self.genre = genre
         self.mission = mission
-
+        
+        # フレーム形状をパネル風に設定
         self.setFrameShape(QFrame.StyledPanel)
+        # Qt StyleSheety 参照用のタグを設定
         self.setObjectName("missionCard")
+        
+        # ミッションカード
+        root = QVBoxLayout(self)                   # 縦方向のレイアウトを適用
+        root.setContentsMargins(12, 12, 12, 12)    # カード内側の余白(px)
+        root.setSpacing(8)                         # 子ウィジェット同士の間隔(px)
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(8)
+        # ヘッダーレイアウト設定
+        header = QHBoxLayout()                      # ヘッダー全体は横並びレイアウト
 
-        # header
-        header = QHBoxLayout()
-        title_box = QVBoxLayout()
-        title_box.setContentsMargins(0, 0, 0, 0)
-        title_box.setSpacing(2)
+        # タイトルボックス
+        title_box = QVBoxLayout()                   
+        title_box.setContentsMargins(0, 0, 0, 0)    
+        title_box.setSpacing(2)                    
 
+        # ミッション名
         self.title = QLabel(self.mission.get("name", ""))
-
+        
+        # メタ情報
         meta_row = QHBoxLayout()
         meta_row.setContentsMargins(0, 0, 0, 0)
         meta_row.setSpacing(8)
-
+        
         self.due_label = QLabel("")
         self.done_label = QLabel("")
         self.due_label.setStyleSheet("color:#aaa; font-size:11px;")
@@ -53,40 +55,48 @@ class MissionCard(QFrame):
         meta_row.addWidget(self.done_label)
         meta_row_container = QWidget()
         meta_row_container.setLayout(meta_row)
-
+        
+        # タイトルボックスにタイトルとメタ情報を格納してタイトルボックス内に追加
         title_box.addWidget(self.title)
         title_box.addWidget(meta_row_container)
-
+        
+        # タイトルボックスを(QVBoxLayout)をQWidgetにラップ
         title_container = QWidget()
         title_container.setLayout(title_box)
-
+        
+        # プログレスバー
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self._apply_progress()
-
+        
+        # タスク表示切替ボタン
         self.toggle_btn = QPushButton("タスクの表示")
         self.toggle_btn.setCheckable(True)
         self.toggle_btn.setChecked(False)
-        self.toggle_btn.toggled.connect(self._toggle_body)
+        self.toggle_btn.toggled.connect(self._toggle_body)    # イベント接続
 
+        # 各QWidgetをヘッダーに追加
         header.addWidget(title_container, 1)
         header.addWidget(self.progress, 2)
         header.addWidget(self.toggle_btn)
         root.addLayout(header)
 
-        # body: task list
+        # ボディーレイアウト設定（タスク一覧）
         self.body = QWidget()
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(4)
 
+        # タスク一覧の描画処理
         self.task_items: list[TaskItem] = []
+        # DIされた MissionDict から tasks のリストの要素毎に処理
         for t in self.mission.get("tasks", []):
-            item = TaskItem(self.service, self.mission, t)
-            item.toggled.connect(self._on_task_changed)
-            self.task_items.append(item)
-            body_layout.addWidget(item)
+            item = TaskItem(self.service, self.mission, t)    # TaskItemインスタンスを生成(タスクUIクラス)   
+            item.toggled.connect(self._on_task_changed)       # インスタンスをイベント接続
+            self.task_items.append(item)                      # task_itemにインスタンスを追加
+            body_layout.addWidget(item)                       # ウィジェットにタスクUIを追加
 
+        # タスク追加ボタン
         add_row = QHBoxLayout()
         add_btn = QPushButton("タスク追加")
         add_btn.clicked.connect(self._add_task)
@@ -97,21 +107,24 @@ class MissionCard(QFrame):
         root.addWidget(self.body)
         self.body.setVisible(False)
 
-        # right-click on mission card
+        # 右クリックメニュー
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._open_mission_menu)
 
+        # UI更新処理
         self._refresh_meta_labels()
         self._update_mission_completion(force=True)
 
-    # labels
+
+    # 内部関数
     def _refresh_meta_labels(self) -> None:
+        # DIされた MissionDict から期日と完了日時データを取り出してラベルに設定
         due_txt = f"期限: {self.mission.get('due_date')}" if self.mission.get("due_date") else "期限: -"
         done_txt = f"完了: {self.mission.get('completed_at')}" if self.mission.get("completed_at") else "完了: -"
         self.due_label.setText(due_txt)
         self.done_label.setText(done_txt)
 
-    # state helpers
+    
     def _update_mission_completion(self, force: bool = False) -> None:
         if mission_progress(self.mission) >= 1.0:
             # completed_at は AppService.toggle_task_done でも設定するが、
@@ -125,13 +138,16 @@ class MissionCard(QFrame):
         self._refresh_meta_labels()
 
     def _toggle_body(self, checked: bool) -> None:
+        # タスク一覧の表示・非表示の切替
         self.body.setVisible(checked)
 
     def _apply_progress(self) -> None:
+        # プログレスバーを最新値に更新
         self.progress.setValue(int(mission_progress(self.mission) * 100))
         self.progress.setTextVisible(True)
 
     def _on_task_changed(self) -> None:
+        # タスクのチェック変更時の反映処理
         self._apply_progress()
         self._update_mission_completion()
         self.changed.emit()
