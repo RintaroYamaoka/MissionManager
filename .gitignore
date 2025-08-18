@@ -1,4 +1,5 @@
 __pycache__/
 *.pyc
 data/app_data.json
+data/.DS_store
 venv_pyside6/
