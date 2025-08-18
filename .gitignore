@@ -1,6 +1,5 @@
 __pycache__/
 *.pyc
 data/
-data/
 .DS_Store
 venv_pyside6/
