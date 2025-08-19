@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, QTimer
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -172,7 +172,8 @@ class MainWindow(QWidget):
 
     def _after_mission_changed(self) -> None:
         # モデル順が変わる操作（上/下移動・削除）に対応して再描画
-        self._render_missions()
+        # シグナル処理完了後に再描画する
+       QTimer.singleShot(0, self._render_missions)
 
     # ---------- mission ops ----------
     def _add_mission(self) -> None:

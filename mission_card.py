@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtCore import Qt, Signal, QPoint, QTimer
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar,
     QFrame, QMenu, QInputDialog, QMessageBox
@@ -150,8 +150,7 @@ class MissionCard(QFrame):
         # タスクのチェック変更時の反映処理
         self._apply_progress()
         self._update_mission_completion()
-        self.changed.emit()
-
+        QTimer.singleShot(0, self.changed.emit)
     # add task
     def _add_task(self) -> None:
         from PySide6.QtWidgets import QInputDialog

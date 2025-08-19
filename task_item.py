@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Callable, Optional
-from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtCore import Qt, Signal, QPoint, QTimer
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QLabel, QMenu, QInputDialog, QMessageBox
 from models import TaskDict, MissionDict
 from app import AppService
@@ -47,9 +47,9 @@ class TaskItem(QWidget):
         # UI上の完了日時ラベルに反映
         self.service.toggle_task_done(self.mission, self.task, checked)
         self._refresh_time_label()
-        # 状態変化を外部へ通知
-        self.toggled.emit()    
-
+        # 自分が破棄されないようにイベントループ後に外部に通知
+        QTimer.singleShot(0, self.toggled.emit)
+           
 
     def _open_menu(self, pos: QPoint) -> None:
         # メニューインスタンスを作成してメニューを登録
