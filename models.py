@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TypedDict, Optional, List
 
-# 辞書型の」ための型ヒント専用クラス
+# 型ヒント専用クラス
 # 1タスクのデータ
 class TaskDict(TypedDict, total=False):
     name: str

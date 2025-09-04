@@ -1,4 +1,3 @@
-# メイン処理（依存度を下げた理想設計版）
 import sys
 from PySide6.QtWidgets import QApplication
 from storage import JsonStorage
