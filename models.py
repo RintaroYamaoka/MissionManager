@@ -1,26 +1,9 @@
 from __future__ import annotations
-from typing import TypedDict, Optional, List
 
-# 型ヒント専用クラス
-# 1タスクのデータ
-class TaskDict(TypedDict, total=False):
-    name: str
-    done: bool                   # 完了状態
-    completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
-
-
-# 1ミッションのデータ
-class MissionDict(TypedDict, total=False):
-    name: str
-    tasks: List[TaskDict]
-    due_date: Optional[str]      # "YYYY-MM-DD" or None
-    completed_at: Optional[str]  # "YYYY-MM-DD HH:MM" or None
-
-
-# 1ジャンルのデータ
-class GenreDict(TypedDict, total=False):
-    name: str
-    missions: List[MissionDict]
+# 型エイリアス
+TaskDict = dict[str, str | bool | None]
+MissionDict = dict[str, str | list[TaskDict] | None]
+GenreDict = dict[str, str | list[MissionDict]]
 
 
 def new_task(name: str) -> TaskDict:
@@ -36,9 +19,9 @@ def new_genre(name: str) -> GenreDict:
 
 
 def mission_progress(m: MissionDict) -> float:
-    # ミッション辞書から tasks キーを取得
-    tasks = m.get("tasks", [])
-    if not tasks:
+    # ミッション辞書から task キーを取得
+    tasks: list[TaskDict] = m.get("tasks", [])
+    if not isinstance(tasks, list) or not tasks:
         return 0.0
-    done = sum(1 for t in tasks if t.get("done", False))
-    return done / len(tasks)
+    done = sum(1 for t in tasks if isinstance(t, dict) and t.get("done", False)) 
+    return done / len(tasks)  
