@@ -1,8 +1,8 @@
 import sys
 from PySide6.QtWidgets import QApplication
-from storage import JsonStorage
-from app import AppService
-from views import MainWindow
+from missionmanager.storage import JsonStorage
+from missionmanager.app import AppService
+from missionmanager.ui.views import MainWindow
 
 
 def main() -> None:

@@ -14,9 +14,10 @@ from PySide6.QtWidgets import (
     QToolButton,
     QMenu,
 )
-from models import GenreDict
-from app import AppService
-from mission_card import MissionCard
+from missionmanager.models import GenreDict
+from missionmanager.app import AppService
+from missionmanager.ui.mission_card import MissionCard
+from missionmanager.ui.add_dialogs import get_genre_add_input, get_mission_add_input
 
 
 class MainWindow(QWidget):
@@ -130,10 +131,11 @@ class MainWindow(QWidget):
 
     # ---------- genre ops ----------
     def _add_genre(self) -> None:
-        name, ok = QInputDialog.getText(self, "ジャンル追加", "ジャンルを入力:")
-        if not ok or not name.strip():
+        result = get_genre_add_input(self)
+        if result is None:
             return
-        self.service.add_genre(name.strip())
+        name, summary = result
+        self.service.add_genre(name, summary)
         self._reload_genre_combo()
         self.genre_combo.setCurrentIndex(len(self.service.genres) - 1)
 
@@ -181,8 +183,9 @@ class MainWindow(QWidget):
         if genre is None:
             QMessageBox.warning(self, "警告", "ジャンルを作成して下さい。")
             return
-        name, ok = QInputDialog.getText(self, "ミッション追加", "ミッションを入力:")
-        if not ok or not name.strip():
+        result = get_mission_add_input(self)
+        if result is None:
             return
-        self.service.add_mission(genre, name.strip())
+        name, summary, due_date = result
+        self.service.add_mission(genre, name, summary, due_date)
         self._render_missions()

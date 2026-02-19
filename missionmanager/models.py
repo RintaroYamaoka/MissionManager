@@ -6,6 +6,7 @@ class TaskDict(TypedDict):
     name: str
     done: bool
     completed_at: NotRequired[str | None]
+    due_date: NotRequired[str | None]
 
 
 class MissionDict(TypedDict):
@@ -13,23 +14,25 @@ class MissionDict(TypedDict):
     tasks: list[TaskDict]
     due_date: NotRequired[str | None]
     completed_at: NotRequired[str | None]
+    summary: NotRequired[str | None]
 
 
 class GenreDict(TypedDict):
     name: str
     missions: list[MissionDict]
+    summary: NotRequired[str | None]
 
 
 def new_task(name: str) -> TaskDict:
-    return {"name": name, "done": False, "completed_at": None}
+    return {"name": name, "done": False, "completed_at": None, "due_date": None}
 
 
 def new_mission(name: str) -> MissionDict:
-    return {"name": name, "tasks": [], "due_date": None, "completed_at": None}
+    return {"name": name, "tasks": [], "due_date": None, "completed_at": None, "summary": None}
 
 
-def new_genre(name: str) -> GenreDict:
-    return {"name": name, "missions": []}
+def new_genre(name: str, summary: str | None = None) -> GenreDict:
+    return {"name": name, "missions": [], "summary": summary or None}
 
 
 def mission_progress(m: MissionDict) -> float:

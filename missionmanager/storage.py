@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
-from models import GenreDict
+from missionmanager.models import GenreDict
 
 
 class StorageError(Exception):
@@ -13,8 +13,9 @@ class StorageError(Exception):
 class JsonStorage:
     
     def __init__(self, path: Path | str | None = None) -> None:
-        # storage.py の親ディレクトリを取得し、直下に data フォルダを結合した Path を作成
-        data_dir: Path = Path(__file__).parent / "data"
+        # プロジェクトルート（missionmanager の親）の data ディレクトリを使用
+        project_root = Path(__file__).parent.parent
+        data_dir: Path = project_root / "data"
         # ディレクトリを作成
         try:
             data_dir.mkdir(exist_ok=True)

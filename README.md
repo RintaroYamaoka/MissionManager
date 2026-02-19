@@ -73,26 +73,31 @@ python main.py
 
 ```
 MissionManager/
-├── main.py              # エントリーポイント
-├── app.py               # ビジネスロジック層（AppService）
-├── models.py            # データモデル定義
-├── storage.py           # データ永続化層（JsonStorage）
-├── views.py             # メインウィンドウUI
-├── mission_card.py      # ミッションカードUIコンポーネント
-├── task_item.py         # タスクアイテムUIコンポーネント
-├── data/                # データ保存ディレクトリ（自動生成）
-│   └── app_data.json    # アプリケーションデータ
-├── requirements.txt     # 依存関係
-└── README.md           # このファイル
+├── main.py                    # エントリーポイント
+├── missionmanager/            # メインパッケージ
+│   ├── __init__.py
+│   ├── models.py              # データモデル定義
+│   ├── storage.py             # データ永続化層（JsonStorage）
+│   ├── app.py                 # ビジネスロジック層（AppService）
+│   └── ui/                    # UI層
+│       ├── __init__.py
+│       ├── views.py           # メインウィンドウUI
+│       ├── mission_card.py    # ミッションカードUIコンポーネント
+│       ├── task_item.py       # タスクアイテムUIコンポーネント
+│       └── date_dialog.py     # 期限入力ダイアログ
+├── data/                      # データ保存ディレクトリ（自動生成）
+│   └── app_data.json          # アプリケーションデータ
+├── requirements.txt           # 依存関係
+└── README.md
 ```
 
 ## アーキテクチャ
 
 MissionManagerは、クリーンアーキテクチャの原則に基づいて設計されています：
 
-- UI層 (`views.py`, `mission_card.py`, `task_item.py`): PySide6を使用したユーザーインターフェース
-- ビジネスロジック層 (`app.py`): UIに依存しないビジネスロジック
-- データ層 (`storage.py`, `models.py`): データの永続化とモデル定義
+- **UI層** (`missionmanager/ui/`): PySide6を使用したユーザーインターフェース
+- **ビジネスロジック層** (`missionmanager/app.py`): UIに依存しないビジネスロジック
+- **データ層** (`missionmanager/storage.py`, `missionmanager/models.py`): データの永続化とモデル定義
 
 依存性注入（DI）パターンを使用しており、各層が疎結合に設計されています。
 

@@ -1,14 +1,15 @@
 from __future__ import annotations
 from typing import Optional
-from datetime import datetime
 from PySide6.QtCore import Qt, Signal, QPoint, QTimer
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar,
     QFrame, QMenu, QInputDialog, QMessageBox
 )
-from models import GenreDict, MissionDict, TaskDict, mission_progress
-from app import AppService
-from task_item import TaskItem
+from missionmanager.models import GenreDict, MissionDict, TaskDict, mission_progress
+from missionmanager.app import AppService
+from missionmanager.ui.task_item import TaskItem
+from missionmanager.ui.date_dialog import get_due_date
+from missionmanager.ui.add_dialogs import get_task_add_input
 
 # 1ミッションのUI
 class MissionCard(QFrame):
@@ -42,6 +43,11 @@ class MissionCard(QFrame):
         # ミッション名
         self.title = QLabel(self.mission.get("name", ""))
         
+        # 概要
+        self.summary_label = QLabel(self.mission.get("summary") or "")
+        self.summary_label.setStyleSheet("color:#888; font-size:11px;")
+        self.summary_label.setWordWrap(True)
+        
         # メタ情報
         meta_row = QHBoxLayout()
         meta_row.setContentsMargins(0, 0, 0, 0)
@@ -49,16 +55,19 @@ class MissionCard(QFrame):
         
         self.due_label = QLabel("")
         self.done_label = QLabel("")
-        self.due_label.setStyleSheet("color:#aaa; font-size:11px;")
-        self.done_label.setStyleSheet("color:#888; font-size:11px;")
+        # 期限: 青系（締切・予定を連想）、完了: 緑系（完了を連想）
+        self.due_label.setStyleSheet("color:#1976D2; font-size:11px; font-weight:500;")
+        self.done_label.setStyleSheet("color:#2E7D32; font-size:11px; font-weight:500;")
 
         meta_row.addWidget(self.due_label)
+        meta_row.addSpacing(16)  # 視覚的な区切り
         meta_row.addWidget(self.done_label)
         meta_row_container = QWidget()
         meta_row_container.setLayout(meta_row)
         
-        # タイトルボックスにタイトルとメタ情報を格納してタイトルボックス内に追加
+        # タイトルボックスにタイトル・概要・メタ情報を格納
         title_box.addWidget(self.title)
+        title_box.addWidget(self.summary_label)
         title_box.addWidget(meta_row_container)
         
         # タイトルボックスを(QVBoxLayout)をQWidgetにラップ
@@ -113,14 +122,20 @@ class MissionCard(QFrame):
         self.customContextMenuRequested.connect(self._open_mission_menu)
 
         # UI更新処理
+        self._refresh_summary_label()
         self._refresh_meta_labels()
         self._update_mission_completion(force=True)
 
 
     # 内部関数
+    def _refresh_summary_label(self) -> None:
+        summary = self.mission.get("summary") or ""
+        self.summary_label.setText(summary)
+        self.summary_label.setVisible(bool(summary))
+
     def _refresh_meta_labels(self) -> None:
         # DIされた MissionDict から期日と完了日時データを取り出してラベルに設定
-        due_txt = f"期限: {self.mission.get('due_date')}" if self.mission.get("due_date") else "期限: -"
+        due_txt = f"期限: {self.mission.get('due_date')}" if self.mission.get("due_date") else "期限: 未設定"
         done_txt = f"完了: {self.mission.get('completed_at')}" if self.mission.get("completed_at") else "完了: -"
         self.due_label.setText(due_txt)
         self.done_label.setText(done_txt)
@@ -148,10 +163,11 @@ class MissionCard(QFrame):
         QTimer.singleShot(0, self.changed.emit)
     # add task
     def _add_task(self) -> None:
-        name, ok = QInputDialog.getText(self, "タスク追加", "タスクを入力:")
-        if not ok or not name.strip():
+        result = get_task_add_input(self)
+        if result is None:
             return
-        self.service.add_task(self.mission, name.strip())
+        name, due_date = result
+        self.service.add_task(self.mission, name, due_date)
 
         item = TaskItem(self.service, self.mission, self.mission["tasks"][-1])
         item.toggled.connect(self._on_task_changed)
@@ -165,6 +181,7 @@ class MissionCard(QFrame):
     def _open_mission_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
         act_rename = menu.addAction("名前変更")
+        act_summary = menu.addAction("概要を編集")
         act_due    = menu.addAction("期限を編集")
         act_up     = menu.addAction("上へ移動")
         act_down   = menu.addAction("下へ移動")
@@ -174,6 +191,8 @@ class MissionCard(QFrame):
             self._delete_mission()
         elif chosen == act_rename:
             self._rename_mission()
+        elif chosen == act_summary:
+            self._edit_summary()
         elif chosen == act_due:
             self._edit_due_date()
         elif chosen == act_up:
@@ -181,6 +200,15 @@ class MissionCard(QFrame):
             self.changed.emit()
         elif chosen == act_down:
             self.service.move_mission_down(self.genre, self.mission)
+            self.changed.emit()
+
+    def _edit_summary(self) -> None:
+        text, ok = QInputDialog.getMultiLineText(
+            self, "概要を編集", "概要：", text=self.mission.get("summary") or ""
+        )
+        if ok:
+            self.service.set_mission_summary(self.mission, text.strip() or None)
+            self._refresh_summary_label()
             self.changed.emit()
 
     def _rename_mission(self) -> None:
@@ -191,15 +219,10 @@ class MissionCard(QFrame):
             self.changed.emit()
 
     def _edit_due_date(self) -> None:
-        text, ok = QInputDialog.getText(
-            self,
-            "期限を編集",
-            "期限（YYYY-MM-DD、空欄可）：",
-            text=self.mission.get("due_date") or "",
-        )
+        due_str, ok = get_due_date(self, "期限を編集", self.mission.get("due_date"))
         if not ok:
             return
-        self.service.set_mission_due(self.mission, text.strip() or None)
+        self.service.set_mission_due(self.mission, due_str)
         self._refresh_meta_labels()
         self.changed.emit()
 
@@ -208,4 +231,3 @@ class MissionCard(QFrame):
             self.service.delete_mission(self.genre, self.mission)
             self.setParent(None)
             self.changed.emit()
-            

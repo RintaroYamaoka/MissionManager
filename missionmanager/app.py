@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional
 from datetime import datetime
-from models import GenreDict, MissionDict, TaskDict, new_genre, new_mission, new_task, mission_progress
+from missionmanager.models import GenreDict, MissionDict, TaskDict, new_genre, new_mission, new_task, mission_progress
 
 
 def now_str() -> str:
@@ -29,8 +29,8 @@ class AppService:
     def list_genres(self) -> List[GenreDict]:
         return self.genres
 
-    def add_genre(self, name: str) -> None:
-        self.genres.append(new_genre(name))
+    def add_genre(self, name: str, summary: Optional[str] = None) -> None:
+        self.genres.append(new_genre(name, summary))
         self._save()
 
     def rename_genre(self, index: int, new_name: str) -> None:
@@ -63,8 +63,13 @@ class AppService:
 
 
     # ミッションの処理
-    def add_mission(self, g: GenreDict, name: str) -> None:
-        g.setdefault("missions", []).append(new_mission(name))
+    def add_mission(self, g: GenreDict, name: str, summary: Optional[str] = None, due_date: Optional[str] = None) -> None:
+        m = new_mission(name)
+        if summary:
+            m["summary"] = summary
+        if due_date:
+            m["due_date"] = due_date
+        g.setdefault("missions", []).append(m)
         self._save()
 
     def find_mission_index(self, g: GenreDict, m: MissionDict) -> int:
@@ -80,6 +85,10 @@ class AppService:
 
     def set_mission_due(self, m: MissionDict, due_text: Optional[str]) -> None:
         m["due_date"] = due_text or None
+        self._save()
+
+    def set_mission_summary(self, m: MissionDict, summary: Optional[str]) -> None:
+        m["summary"] = summary or None
         self._save()
 
     def delete_mission(self, g: GenreDict, m: MissionDict) -> None:
@@ -114,12 +123,19 @@ class AppService:
 
 
     # タスクの処理
-    def add_task(self, m: MissionDict, name: str) -> None:
-        m.setdefault("tasks", []).append(new_task(name))
+    def add_task(self, m: MissionDict, name: str, due_date: Optional[str] = None) -> None:
+        t = new_task(name)
+        if due_date:
+            t["due_date"] = due_date
+        m.setdefault("tasks", []).append(t)
         self._save()
 
     def rename_task(self, t: TaskDict, new_name: str) -> None:
         t["name"] = new_name
+        self._save()
+
+    def set_task_due(self, t: TaskDict, due_text: Optional[str]) -> None:
+        t["due_date"] = due_text or None
         self._save()
 
     def delete_task(self, m: MissionDict, t: TaskDict) -> None:
