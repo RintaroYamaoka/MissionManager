@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar,
     QFrame, QMenu, QInputDialog, QMessageBox
 )
-from missionmanager.models import GenreDict, MissionDict, TaskDict, mission_progress
+from missionmanager.models import GenreDict, MissionDict, TaskDict, mission_progress, task_sort_key
 from missionmanager.app import AppService
 from missionmanager.ui.task_item import TaskItem
 from missionmanager.ui.date_dialog import get_due_date
@@ -100,10 +100,14 @@ class MissionCard(QFrame):
         self.summary_label.setWordWrap(True)
         body_layout.addWidget(self.summary_label)
 
-        # タスク一覧の描画処理
+        # タスク一覧の描画処理（期限が近く未完了のものを上にソート）
         self.task_items: list[TaskItem] = []
-        # DIされた MissionDict から tasks のリストの要素毎に処理
-        for t in self.mission.get("tasks", []):
+        tasks = self.mission.get("tasks", [])
+        sorted_tasks = sorted(
+            enumerate(tasks),
+            key=lambda x: task_sort_key(x[1], x[0])
+        )
+        for _, t in sorted_tasks:
             item = TaskItem(self.service, self.mission, t)    # TaskItemインスタンスを生成(タスクUIクラス)   
             item.toggled.connect(self._on_task_changed)       # インスタンスをイベント接続
             self.task_items.append(item)                      # task_itemにインスタンスを追加

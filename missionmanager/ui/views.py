@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QLabel,
 )
-from missionmanager.models import GenreDict, count_incomplete_missions
+from missionmanager.models import GenreDict, count_incomplete_missions, mission_sort_key
 from missionmanager.app import AppService
 from missionmanager.ui.mission_card import MissionCard
 from missionmanager.ui.add_dialogs import get_genre_add_input, get_mission_add_input
@@ -213,7 +213,12 @@ class MainWindow(QWidget):
         genre = self._current_genre()
         if genre is None:
             return
-        for m in genre.get("missions", []):
+        missions = genre.get("missions", [])
+        sorted_missions = sorted(
+            enumerate(missions),
+            key=lambda x: mission_sort_key(x[1], x[0])
+        )
+        for _, m in sorted_missions:
             card = MissionCard(self.service, genre, m)
             card.changed.connect(self._after_mission_changed)
             self.mission_layout.insertWidget(self.mission_layout.count() - 1, card)
