@@ -1,9 +1,23 @@
 from __future__ import annotations
+from typing import TypedDict, NotRequired
 
-# 型エイリアス
-TaskDict = dict[str, str | bool | None]
-MissionDict = dict[str, str | list[TaskDict] | None]
-GenreDict = dict[str, str | list[MissionDict]]
+# 型定義
+class TaskDict(TypedDict):
+    name: str
+    done: bool
+    completed_at: NotRequired[str | None]
+
+
+class MissionDict(TypedDict):
+    name: str
+    tasks: list[TaskDict]
+    due_date: NotRequired[str | None]
+    completed_at: NotRequired[str | None]
+
+
+class GenreDict(TypedDict):
+    name: str
+    missions: list[MissionDict]
 
 
 def new_task(name: str) -> TaskDict:

@@ -34,21 +34,29 @@ class AppService:
         self._save()
 
     def rename_genre(self, index: int, new_name: str) -> None:
+        if index < 0 or index >= len(self.genres):
+            raise IndexError(f"ジャンルインデックス {index} が範囲外です")
         self.genres[index]["name"] = new_name
         self._save()
 
     def delete_genre(self, index: int) -> None:
+        if index < 0 or index >= len(self.genres):
+            raise IndexError(f"ジャンルインデックス {index} が範囲外です")
         del self.genres[index]
         self._save()
 
     def move_genre_up(self, index: int) -> None:
+        if index < 0 or index >= len(self.genres):
+            raise IndexError(f"ジャンルインデックス {index} が範囲外です")
         if index <= 0:
             return
         self.genres[index-1], self.genres[index] = self.genres[index], self.genres[index-1]
         self._save()
 
     def move_genre_down(self, index: int) -> None:
-        if index < 0 or index >= len(self.genres) - 1:
+        if index < 0 or index >= len(self.genres):
+            raise IndexError(f"ジャンルインデックス {index} が範囲外です")
+        if index >= len(self.genres) - 1:
             return
         self.genres[index+1], self.genres[index] = self.genres[index], self.genres[index+1]
         self._save()
@@ -60,7 +68,11 @@ class AppService:
         self._save()
 
     def find_mission_index(self, g: GenreDict, m: MissionDict) -> int:
-        return g.get("missions", []).index(m)
+        missions = g.get("missions", [])
+        try:
+            return missions.index(m)
+        except ValueError:
+            raise ValueError("指定されたミッションが見つかりません")
 
     def rename_mission(self, m: MissionDict, new_name: str) -> None:
         m["name"] = new_name
@@ -71,12 +83,19 @@ class AppService:
         self._save()
 
     def delete_mission(self, g: GenreDict, m: MissionDict) -> None:
-        g["missions"].remove(m)
+        missions = g.get("missions", [])
+        try:
+            missions.remove(m)
+        except ValueError:
+            raise ValueError("指定されたミッションが見つかりません")
         self._save()
 
     def move_mission_up(self, g: GenreDict, m: MissionDict) -> None:
         missions = g.get("missions", [])
-        idx = missions.index(m)
+        try:
+            idx = missions.index(m)
+        except ValueError:
+            raise ValueError("指定されたミッションが見つかりません")
         if idx <= 0:
             return
         missions[idx-1], missions[idx] = missions[idx], missions[idx-1]
@@ -84,7 +103,10 @@ class AppService:
 
     def move_mission_down(self, g: GenreDict, m: MissionDict) -> None:
         missions = g.get("missions", [])
-        idx = missions.index(m)
+        try:
+            idx = missions.index(m)
+        except ValueError:
+            raise ValueError("指定されたミッションが見つかりません")
         if idx < 0 or idx >= len(missions) - 1:
             return
         missions[idx+1], missions[idx] = missions[idx], missions[idx+1]
@@ -101,12 +123,19 @@ class AppService:
         self._save()
 
     def delete_task(self, m: MissionDict, t: TaskDict) -> None:
-        m["tasks"].remove(t)
+        tasks = m.get("tasks", [])
+        try:
+            tasks.remove(t)
+        except ValueError:
+            raise ValueError("指定されたタスクが見つかりません")
         self._save()
 
     def move_task_up(self, m: MissionDict, t: TaskDict) -> None:
         tasks = m.get("tasks", [])
-        idx = tasks.index(t)
+        try:
+            idx = tasks.index(t)
+        except ValueError:
+            raise ValueError("指定されたタスクが見つかりません")
         if idx <= 0:
             return
         tasks[idx-1], tasks[idx] = tasks[idx], tasks[idx-1]
@@ -114,7 +143,10 @@ class AppService:
 
     def move_task_down(self, m: MissionDict, t: TaskDict) -> None:
         tasks = m.get("tasks", [])
-        idx = tasks.index(t)
+        try:
+            idx = tasks.index(t)
+        except ValueError:
+            raise ValueError("指定されたタスクが見つかりません")
         if idx < 0 or idx >= len(tasks) - 1:
             return
         tasks[idx+1], tasks[idx] = tasks[idx], tasks[idx+1]

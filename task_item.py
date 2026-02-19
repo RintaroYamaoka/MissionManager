@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional
+from typing import Optional
 from PySide6.QtCore import Qt, Signal, QPoint, QTimer
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QLabel, QMenu, QInputDialog, QMessageBox
 from models import TaskDict, MissionDict
@@ -68,15 +68,15 @@ class TaskItem(QWidget):
             self._delete_task()
         elif chosen == act_rename:
             self._rename_task()
-        # DIされたメソッドを呼び出し、UIを再構築（修正予定）、状態変化を外部へ通知    
+        # DIされたメソッドを呼び出し、状態変化を外部へ通知（MissionCardが再描画を処理）
         elif chosen == act_up:
-            self.service.move_task_up(self.mission, self.task)    
-            self.parentWidget().parentWidget().parentWidget().parentWidget().parentWidget().update()  # no-op
-            self.toggled.emit()
+            self.service.move_task_up(self.mission, self.task)
+            # シグナルでMissionCardに再描画を通知
+            QTimer.singleShot(0, self.toggled.emit)
         elif chosen == act_down:
             self.service.move_task_down(self.mission, self.task)
-            self.parentWidget().parentWidget().parentWidget().parentWidget().parentWidget().update()
-            self.toggled.emit()
+            # シグナルでMissionCardに再描画を通知
+            QTimer.singleShot(0, self.toggled.emit)
 
     def _rename_task(self) -> None:
         # 名前入力ダイアログの表示

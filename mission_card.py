@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Optional
+from datetime import datetime
 from PySide6.QtCore import Qt, Signal, QPoint, QTimer
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar,
@@ -126,15 +127,9 @@ class MissionCard(QFrame):
 
     
     def _update_mission_completion(self, force: bool = False) -> None:
-        if mission_progress(self.mission) >= 1.0:
-            # completed_at は AppService.toggle_task_done でも設定するが、
-            # 手動で100%になった直後の見た目反映用にここでも設定
-            if force or not self.mission.get("completed_at"):
-                from datetime import datetime
-                self.mission["completed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-        else:
-            if self.mission.get("completed_at") is not None:
-                self.mission["completed_at"] = None
+        # UI表示の更新のみを行う（データ更新はAppService経由）
+        # force=Trueの場合は初期表示時の整合性チェックとして使用
+        # データの更新はAppService.toggle_task_doneで行われるため、ここでは表示のみ更新
         self._refresh_meta_labels()
 
     def _toggle_body(self, checked: bool) -> None:
@@ -153,7 +148,6 @@ class MissionCard(QFrame):
         QTimer.singleShot(0, self.changed.emit)
     # add task
     def _add_task(self) -> None:
-        from PySide6.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "タスク追加", "タスクを入力:")
         if not ok or not name.strip():
             return
@@ -190,7 +184,6 @@ class MissionCard(QFrame):
             self.changed.emit()
 
     def _rename_mission(self) -> None:
-        from PySide6.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self, "ミッション名の変更", "ミッション：", text=self.mission.get("name", ""))
         if ok and new_name.strip():
             self.service.rename_mission(self.mission, new_name.strip())
@@ -198,7 +191,6 @@ class MissionCard(QFrame):
             self.changed.emit()
 
     def _edit_due_date(self) -> None:
-        from PySide6.QtWidgets import QInputDialog
         text, ok = QInputDialog.getText(
             self,
             "期限を編集",

@@ -173,7 +173,7 @@ class MainWindow(QWidget):
     def _after_mission_changed(self) -> None:
         # モデル順が変わる操作（上/下移動・削除）に対応して再描画
         # シグナル処理完了後に再描画する
-       QTimer.singleShot(0, self._render_missions)
+        QTimer.singleShot(0, self._render_missions)
 
     # ---------- mission ops ----------
     def _add_mission(self) -> None:
