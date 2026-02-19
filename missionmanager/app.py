@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List, Optional
 from datetime import datetime
 from missionmanager.models import GenreDict, MissionDict, TaskDict, new_genre, new_mission, new_task, mission_progress
+from missionmanager.storage import StorageProtocol
 
 
 def now_str() -> str:
@@ -12,8 +13,8 @@ class AppService:
     # UIに依存しないビジネスロジック層
     # 全データは List[GenreDict] データオブジェクトで管理
     # 変更時に必ず _save() を呼んで永続化
-    
-    def __init__(self, storage) -> None:
+
+    def __init__(self, storage: StorageProtocol) -> None:
         # コンストラクタインジェクション
         self._storage = storage   
         self.genres: List[GenreDict] = self._storage.load_genres()    # データオブジェクト読み込み
@@ -37,6 +38,12 @@ class AppService:
         if index < 0 or index >= len(self.genres):
             raise IndexError(f"ジャンルインデックス {index} が範囲外です")
         self.genres[index]["name"] = new_name
+        self._save()
+
+    def set_genre_summary(self, index: int, summary: Optional[str]) -> None:
+        if index < 0 or index >= len(self.genres):
+            raise IndexError(f"ジャンルインデックス {index} が範囲外です")
+        self.genres[index]["summary"] = summary or None
         self._save()
 
     def delete_genre(self, index: int) -> None:
@@ -123,11 +130,19 @@ class AppService:
 
 
     # タスクの処理
+    def _sync_mission_completion(self, m: MissionDict) -> None:
+        """タスクの完了状況に応じてミッションの completed_at を同期"""
+        if mission_progress(m) >= 1.0:
+            m["completed_at"] = now_str()
+        else:
+            m["completed_at"] = None
+
     def add_task(self, m: MissionDict, name: str, due_date: Optional[str] = None) -> None:
         t = new_task(name)
         if due_date:
             t["due_date"] = due_date
         m.setdefault("tasks", []).append(t)
+        self._sync_mission_completion(m)
         self._save()
 
     def rename_task(self, t: TaskDict, new_name: str) -> None:
@@ -144,6 +159,7 @@ class AppService:
             tasks.remove(t)
         except ValueError:
             raise ValueError("指定されたタスクが見つかりません")
+        self._sync_mission_completion(m)
         self._save()
 
     def move_task_up(self, m: MissionDict, t: TaskDict) -> None:
@@ -171,9 +187,5 @@ class AppService:
     def toggle_task_done(self, m: MissionDict, t: TaskDict, checked: bool) -> None:
         t["done"] = checked
         t["completed_at"] = now_str() if checked else None
-        # ミッション完了ステータスの自動更新
-        if mission_progress(m) >= 1.0:
-            m["completed_at"] = now_str()
-        else:
-            m["completed_at"] = None
+        self._sync_mission_completion(m)
         self._save()

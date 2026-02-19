@@ -42,12 +42,8 @@ class MissionCard(QFrame):
 
         # ミッション名
         self.title = QLabel(self.mission.get("name", ""))
-        
-        # 概要
-        self.summary_label = QLabel(self.mission.get("summary") or "")
-        self.summary_label.setStyleSheet("color:#888; font-size:11px;")
-        self.summary_label.setWordWrap(True)
-        
+        self.title.setCursor(Qt.PointingHandCursor)
+
         # メタ情報
         meta_row = QHBoxLayout()
         meta_row.setContentsMargins(0, 0, 0, 0)
@@ -58,16 +54,18 @@ class MissionCard(QFrame):
         # 期限: 青系（締切・予定を連想）、完了: 緑系（完了を連想）
         self.due_label.setStyleSheet("color:#1976D2; font-size:11px; font-weight:500;")
         self.done_label.setStyleSheet("color:#2E7D32; font-size:11px; font-weight:500;")
+        self.due_label.setCursor(Qt.PointingHandCursor)
+        self.done_label.setCursor(Qt.PointingHandCursor)
 
         meta_row.addWidget(self.due_label)
         meta_row.addSpacing(16)  # 視覚的な区切り
         meta_row.addWidget(self.done_label)
         meta_row_container = QWidget()
         meta_row_container.setLayout(meta_row)
-        
-        # タイトルボックスにタイトル・概要・メタ情報を格納
+        meta_row_container.setCursor(Qt.PointingHandCursor)
+
+        # タイトルボックスにタイトル・メタ情報を格納
         title_box.addWidget(self.title)
-        title_box.addWidget(self.summary_label)
         title_box.addWidget(meta_row_container)
         
         # タイトルボックスを(QVBoxLayout)をQWidgetにラップ
@@ -78,24 +76,29 @@ class MissionCard(QFrame):
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self._apply_progress()
-        
-        # タスク表示切替ボタン
-        self.toggle_btn = QPushButton("タスクの表示")
-        self.toggle_btn.setCheckable(True)
-        self.toggle_btn.setChecked(False)
-        self.toggle_btn.toggled.connect(self._toggle_body)    # イベント接続
+        self.progress.setCursor(Qt.PointingHandCursor)
 
-        # 各QWidgetをヘッダーに追加
+        # ヘッダーをクリックでタスク表示を切替
+        self._body_visible = False
+        self._header_widgets = (self.title, meta_row_container, self.due_label, self.done_label, self.progress)
+        for w in self._header_widgets:
+            w.setToolTip("クリックでタスクの表示を切替")
+            w.installEventFilter(self)
         header.addWidget(title_container, 1)
         header.addWidget(self.progress, 2)
-        header.addWidget(self.toggle_btn)
         root.addLayout(header)
 
-        # ボディーレイアウト設定（タスク一覧）
+        # ボディーレイアウト設定（カードを開いた時のみ表示）
         self.body = QWidget()
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(4)
+
+        # 概要（カードを開いた時のみ表示）
+        self.summary_label = QLabel(self.mission.get("summary") or "")
+        self.summary_label.setStyleSheet("color:#888; font-size:11px;")
+        self.summary_label.setWordWrap(True)
+        body_layout.addWidget(self.summary_label)
 
         # タスク一覧の描画処理
         self.task_items: list[TaskItem] = []
@@ -115,7 +118,7 @@ class MissionCard(QFrame):
         body_layout.addLayout(add_row)
 
         root.addWidget(self.body)
-        self.body.setVisible(False)
+        self.body.setVisible(self._body_visible)
 
         # 右クリックメニュー
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -124,32 +127,39 @@ class MissionCard(QFrame):
         # UI更新処理
         self._refresh_summary_label()
         self._refresh_meta_labels()
-        self._update_mission_completion(force=True)
+        self._update_mission_completion()
 
 
     # 内部関数
     def _refresh_summary_label(self) -> None:
+        """概要を更新（カードを開いている時のみ表示）"""
         summary = self.mission.get("summary") or ""
         self.summary_label.setText(summary)
-        self.summary_label.setVisible(bool(summary))
+        self.summary_label.setVisible(self._body_visible and bool(summary))
 
     def _refresh_meta_labels(self) -> None:
         # DIされた MissionDict から期日と完了日時データを取り出してラベルに設定
         due_txt = f"期限: {self.mission.get('due_date')}" if self.mission.get("due_date") else "期限: 未設定"
-        done_txt = f"完了: {self.mission.get('completed_at')}" if self.mission.get("completed_at") else "完了: -"
+        # 完了日時は全タスク完了時のみ表示（データ不整合のガード）
+        show_done = mission_progress(self.mission) >= 1.0 and self.mission.get("completed_at")
+        done_txt = f"完了: {self.mission.get('completed_at')}" if show_done else "完了: -"
         self.due_label.setText(due_txt)
         self.done_label.setText(done_txt)
 
     
-    def _update_mission_completion(self, force: bool = False) -> None:
-        # UI表示の更新のみを行う（データ更新はAppService経由）
-        # force=Trueの場合は初期表示時の整合性チェックとして使用
-        # データの更新はAppService.toggle_task_doneで行われるため、ここでは表示のみ更新
+    def _update_mission_completion(self) -> None:
+        """UI表示の更新のみ行う（データ更新はAppService経由）"""
         self._refresh_meta_labels()
 
-    def _toggle_body(self, checked: bool) -> None:
-        # タスク一覧の表示・非表示の切替
-        self.body.setVisible(checked)
+    def eventFilter(self, obj: QWidget, event) -> bool:
+        """ヘッダークリックでタスク表示を切替"""
+        if obj in self._header_widgets and event.type() == event.Type.MouseButtonPress:
+            if event.button() == Qt.LeftButton:
+                self._body_visible = not self._body_visible
+                self.body.setVisible(self._body_visible)
+                self._refresh_summary_label()
+                return True
+        return super().eventFilter(obj, event)
 
     def _apply_progress(self) -> None:
         # プログレスバーを最新値に更新

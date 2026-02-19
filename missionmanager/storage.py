@@ -1,8 +1,14 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 from missionmanager.models import GenreDict
+
+
+class StorageProtocol(Protocol):
+    """ストレージのインターフェース"""
+    def load_genres(self) -> list[GenreDict]: ...
+    def save_genres(self, genres: list[GenreDict]) -> None: ...
 
 
 class StorageError(Exception):
@@ -58,26 +64,26 @@ class JsonStorage:
         except (TypeError, ValueError) as e:
             raise StorageError(f"データのシリアライズに失敗しました: {e}")
 
+    def _validate_genres(self, genres: Any) -> list[GenreDict]:
+        """genres の構造を検証し、不正な要素をスキップして返す"""
+        if not isinstance(genres, list):
+            raise StorageError("データ形式が不正です: 'genres'はリストである必要があります")
+        result: list[GenreDict] = []
+        for g in genres:
+            if not isinstance(g, dict) or "name" not in g or not isinstance(g.get("name"), str):
+                continue
+            if "missions" not in g or not isinstance(g.get("missions"), list):
+                g = {**g, "missions": []}
+            result.append(g)
+        return result
+
     def load_genres(self) -> list[GenreDict]:
-        try:
-            raw: dict[str, Any] = self._read()
-            genres = raw.get("genres", [])
-            # データ構造の基本的な検証
-            if not isinstance(genres, list):
-                raise StorageError("データ形式が不正です: 'genres'はリストである必要があります")
-            return genres
-        except StorageError:
-            raise
-        except Exception as e:
-            raise StorageError(f"ジャンルの読み込みに失敗しました: {e}")
+        raw: dict[str, Any] = self._read()
+        genres = raw.get("genres", [])
+        return self._validate_genres(genres)
 
     def save_genres(self, genres: list[GenreDict]) -> None:
         if not isinstance(genres, list):
             raise StorageError("genresはリストである必要があります")
-        try:
-            data: dict[str, Any] = {"genres": genres}
-            self._write(data)
-        except StorageError:
-            raise
-        except Exception as e:
-            raise StorageError(f"ジャンルの保存に失敗しました: {e}")    
+        data: dict[str, Any] = {"genres": genres}
+        self._write(data)

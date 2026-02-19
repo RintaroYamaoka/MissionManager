@@ -4,7 +4,7 @@ from typing import Optional
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QDateEdit, QLabel,
-    QDialogButtonBox,
+    QDialogButtonBox, QWidget,
 )
 
 
@@ -24,7 +24,7 @@ def _parse_date(text: Optional[str]) -> Optional[QDate]:
     return None
 
 
-def get_due_date(parent: Optional[QDialog], title: str, current: Optional[str]) -> tuple[Optional[str], bool]:
+def get_due_date(parent: Optional[QWidget], title: str, current: Optional[str]) -> tuple[Optional[str], bool]:
     """
     カレンダープルダウンで期限を選択するダイアログを表示する。
     戻り値: (選択した日付の YYYY-MM-DD 文字列、または None, OKが押されたか)

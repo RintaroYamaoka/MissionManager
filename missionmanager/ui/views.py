@@ -5,14 +5,15 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
     QComboBox,
+    QPushButton,
     QScrollArea,
     QFrame,
     QInputDialog,
     QMessageBox,
     QToolButton,
     QMenu,
+    QLabel,
 )
 from missionmanager.models import GenreDict
 from missionmanager.app import AppService
@@ -45,7 +46,7 @@ class MainWindow(QWidget):
         top = QHBoxLayout()
         self.genre_combo = QComboBox()
         self._reload_genre_combo()
-        self.genre_combo.currentIndexChanged.connect(self._render_missions)
+        self.genre_combo.currentIndexChanged.connect(self._on_genre_changed)
         self.genre_combo.setContextMenuPolicy(Qt.CustomContextMenu)
         self.genre_combo.customContextMenuRequested.connect(self._open_genre_menu)
 
@@ -56,6 +57,12 @@ class MainWindow(QWidget):
         top.addWidget(self.genre_combo, 1)
         top.addWidget(add_genre_btn)
         root.addLayout(top)
+
+        # ジャンル概要表示
+        self.genre_summary_label = QLabel("")
+        self.genre_summary_label.setStyleSheet("color:#888; font-size:11px;")
+        self.genre_summary_label.setWordWrap(True)
+        root.addWidget(self.genre_summary_label)
 
         # ミッション一覧(スクロール)
         self.scroll = QScrollArea()
@@ -80,12 +87,14 @@ class MainWindow(QWidget):
         root.addLayout(bottom)
 
         # 初回レンダリング
+        self._update_genre_summary_label()
         self._render_missions()
 
     # ---------- genre context menu ----------
     def _open_genre_menu(self, pos: QPoint) -> None:
         menu = QMenu(self)
         act_rename = menu.addAction("名前変更")
+        act_summary = menu.addAction("概要を編集")
         act_up     = menu.addAction("上へ移動")
         act_down   = menu.addAction("下へ移動")
         act_delete = menu.addAction("削除")
@@ -93,6 +102,8 @@ class MainWindow(QWidget):
 
         if chosen == act_rename:
             self._rename_genre()
+        elif chosen == act_summary:
+            self._edit_genre_summary()
         elif chosen == act_delete:
             self._delete_genre()
         elif chosen == act_up:
@@ -101,6 +112,7 @@ class MainWindow(QWidget):
                 self.service.move_genre_up(idx)
                 self._reload_genre_combo()
                 self.genre_combo.setCurrentIndex(max(0, idx-1))
+                self._update_genre_summary_label()
                 self._render_missions()
         elif chosen == act_down:
             idx = self.genre_combo.currentIndex()
@@ -108,6 +120,7 @@ class MainWindow(QWidget):
                 self.service.move_genre_down(idx)
                 self._reload_genre_combo()
                 self.genre_combo.setCurrentIndex(min(self.genre_combo.count()-1, idx+1))
+                self._update_genre_summary_label()
                 self._render_missions()
 
     # ---------- helpers ----------
@@ -120,6 +133,16 @@ class MainWindow(QWidget):
     def _reload_genre_combo(self) -> None:
         self.genre_combo.clear()
         self.genre_combo.addItems([g.get("name", "") for g in self.service.genres])
+
+    def _update_genre_summary_label(self) -> None:
+        genre = self._current_genre()
+        summary = genre.get("summary") if genre else None
+        self.genre_summary_label.setText(summary or "")
+        self.genre_summary_label.setVisible(bool(summary))
+
+    def _on_genre_changed(self) -> None:
+        self._update_genre_summary_label()
+        self._render_missions()
 
     def _clear_missions_ui(self) -> None:
         layout = self.mission_layout
@@ -138,6 +161,19 @@ class MainWindow(QWidget):
         self.service.add_genre(name, summary)
         self._reload_genre_combo()
         self.genre_combo.setCurrentIndex(len(self.service.genres) - 1)
+        self._update_genre_summary_label()
+
+    def _edit_genre_summary(self) -> None:
+        genre = self._current_genre()
+        if not genre:
+            return
+        text, ok = QInputDialog.getMultiLineText(
+            self, "概要を編集", "概要：", text=genre.get("summary") or ""
+        )
+        if ok:
+            idx = self.genre_combo.currentIndex()
+            self.service.set_genre_summary(idx, text.strip() or None)
+            self._update_genre_summary_label()
 
     def _rename_genre(self) -> None:
         genre = self._current_genre()
@@ -149,6 +185,7 @@ class MainWindow(QWidget):
             self.service.rename_genre(idx, new_name.strip())
             self._reload_genre_combo()
             self.genre_combo.setCurrentIndex(idx)
+            self._update_genre_summary_label()
 
     def _delete_genre(self) -> None:
         genre = self._current_genre()
@@ -159,6 +196,7 @@ class MainWindow(QWidget):
             self.service.delete_genre(idx)
             self._reload_genre_combo()
             self.genre_combo.setCurrentIndex(min(idx, self.genre_combo.count()-1))
+            self._update_genre_summary_label()
             self._render_missions()
 
     # ---------- render missions ----------
