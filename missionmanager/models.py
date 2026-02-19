@@ -40,5 +40,11 @@ def mission_progress(m: MissionDict) -> float:
     tasks: list[TaskDict] = m.get("tasks", [])
     if not isinstance(tasks, list) or not tasks:
         return 0.0
-    done = sum(1 for t in tasks if isinstance(t, dict) and t.get("done", False)) 
-    return done / len(tasks)  
+    done = sum(1 for t in tasks if isinstance(t, dict) and t.get("done", False))
+    return done / len(tasks)
+
+
+def count_incomplete_missions(genre: GenreDict) -> int:
+    """ジャンル内の未完了ミッション数を返す（mission_progress < 1.0 のもの）"""
+    missions = genre.get("missions", [])
+    return sum(1 for m in missions if isinstance(m, dict) and mission_progress(m) < 1.0)

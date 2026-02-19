@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QLabel,
 )
-from missionmanager.models import GenreDict
+from missionmanager.models import GenreDict, count_incomplete_missions
 from missionmanager.app import AppService
 from missionmanager.ui.mission_card import MissionCard
 from missionmanager.ui.add_dialogs import get_genre_add_input, get_mission_add_input
@@ -131,8 +131,16 @@ class MainWindow(QWidget):
         return self.service.genres[idx]
 
     def _reload_genre_combo(self) -> None:
+        current_idx = self.genre_combo.currentIndex()
+        self.genre_combo.blockSignals(True)
         self.genre_combo.clear()
-        self.genre_combo.addItems([g.get("name", "") for g in self.service.genres])
+        for g in self.service.genres:
+            n = count_incomplete_missions(g)
+            label = f"{g.get('name', '')} · {n}" if n > 0 else g.get("name", "")
+            self.genre_combo.addItem(label)
+        if 0 <= current_idx < self.genre_combo.count():
+            self.genre_combo.setCurrentIndex(current_idx)
+        self.genre_combo.blockSignals(False)
 
     def _update_genre_summary_label(self) -> None:
         genre = self._current_genre()
@@ -211,8 +219,8 @@ class MainWindow(QWidget):
             self.mission_layout.insertWidget(self.mission_layout.count() - 1, card)
 
     def _after_mission_changed(self) -> None:
-        # モデル順が変わる操作（上/下移動・削除）に対応して再描画
-        # シグナル処理完了後に再描画する
+        # ミッション変更時にコンボボックス（未完了数）を更新し、再描画
+        self._reload_genre_combo()
         QTimer.singleShot(0, self._render_missions)
 
     # ---------- mission ops ----------
